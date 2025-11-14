@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    // Output structure
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // Use CommonJS internally (best for Node + ts-node)
+    "module": "CommonJS",
+    "target": "ES2020",
+    "moduleResolution": "node",
+
+    // Allow ES-style imports (import express from "express")
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+
+    // Types for Node.js
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    // Source maps + build output
+    "sourceMap": true,
+    "declaration": false,
+
+    // Strict mode
+    "strict": true
+  }
+}
