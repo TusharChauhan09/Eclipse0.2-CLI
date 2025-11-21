@@ -8,45 +8,49 @@ import GitHubHeatmap from "@/components/GitHubHeatmap";
 
 export default function HomePage() {
   const router = useRouter();
-  const {data , isPending} = authClient.useSession();
+  const { data, isPending } = authClient.useSession();
 
-  if(isPending){
+  if (isPending) {
     return (
       <div>
         <Spinner />
       </div>
-    )
+    );
   }
 
-  if(!data?.session && !data?.user){
+  if (!data?.session && !data?.user) {
     router.replace("/signin");
   }
 
   return (
-  // <div>
-  //   <div>{data?.user.image}</div>
-  //   <div>{data?.user.email}</div>
-  //   <div>{data?.user.emailVerified}</div>
-  //   <div>{data?.user.id}</div>
-  //   <div>{data?.user.name}</div>
-  //   <Button onClick={
-  //     ()=>{
-  //       authClient.signOut({
-  //         fetchOptions:{
-  //           onError: (ctx) => console.log(ctx),
-  //           onSuccess: (ctx) => router.push("/signin")
-  //         }
-  //       });
-  //     }
-  //   }></Button>
-  // </div>
-  <div className=" w-screen min-h-screen bg-black flex text-white ">
-    <div>
-
+    <div className=" w-full min-h-screen flex flex-col  bg-black text-white ">
+      <div className=" min-h-4 flex justify-between my-2 mx-2 border rounded-md py-1 px-2">
+        <div></div>
+        <Button
+          className="border"
+          onClick={() => {
+            authClient.signOut({
+              fetchOptions: {
+                onError: (ctx) => console.log(ctx),
+                onSuccess: (ctx) => router.push("/signin"),
+              },
+            });
+          }}
+        >
+          sigin out
+        </Button>
+      </div>
+      <div className=" w-full min-h-40 flex justify-center items-center gap-x-5">
+        <div >
+          {/* @ts-ignore */}
+          <img src={data?.user.image} alt="user-image" className="size-30 rounded-full " />
+        </div>
+        <div className="flex flex-col p-4 ">
+          <div>{data?.user.name}</div>
+          <GitHubHeatmap username={"tusharchauhan09"} />
+          {/* <div>{data?.user.email}</div> */}
+        </div>
+      </div>
     </div>
-    <div>
-      <GitHubHeatmap username={"tusharchauhan09"} />
-    </div>
-  </div>
   );
 }

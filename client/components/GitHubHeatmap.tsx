@@ -85,16 +85,12 @@ const GitHubHeatmap = ({ username }: { username: string }) => {
       "#ff4d4d", // light red
     ],
     light: [
-  "#000000", // background black
-  "#7AF2FF", // soft neon aqua
-  "#00E7FF", // strong neon cyan
-  "#00B8D6", // deeper neon cyan
-  "#006F7F"  // darker neon teal
-]
-
-
-
-
+      "#000000", // background black
+      "#7AF2FF", // soft neon aqua
+      "#00E7FF", // strong neon cyan
+      "#00B8D6", // deeper neon cyan
+      "#006F7F", // darker neon teal
+    ],
   };
 
   //hover commits
