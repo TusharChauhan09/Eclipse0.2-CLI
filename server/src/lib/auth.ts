@@ -15,7 +15,7 @@ export const auth = betterAuth({
   trustedOrigins: ["http://localhost:3000"],
   plugins: [
     deviceAuthorization({
-      expiresIn: "30m", 
+      expiresIn: "30m",
       interval: "5s",
     }),
   ],

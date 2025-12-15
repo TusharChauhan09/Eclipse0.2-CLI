@@ -20,6 +20,11 @@ import { loginActionType } from "../../../types/types";
 
 dotenv.config();
 
+if (!process.env.GITHUB_CLIENT_ID) {
+  const envPath = path.resolve(__dirname, "../../../../.env");
+  dotenv.config({ path: envPath });
+}
+
 const URL = "http://localhost:3001";
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 
@@ -32,6 +37,11 @@ const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");
 export async function loginAction(opts: loginActionType) {
   const serverUrl = opts.serverUrl || URL;
   const clientId = opts.clientId || CLIENT_ID;
+
+  if (!clientId) {
+    console.error(chalk.red("Client ID is missing. Please set GITHUB_CLIENT_ID in your .env file."));
+    process.exit(1);
+  }
 
   intro(chalk.bold("🔒 Auth CLI Login"));
 
@@ -53,7 +63,7 @@ export async function loginAction(opts: loginActionType) {
 
   // CODE request
   const authClient = createAuthClient({
-    serverUrl,
+    baseURL: serverUrl as string,
     plugins: [deviceAuthorizationClient()],
   });
 
@@ -67,12 +77,10 @@ export async function loginAction(opts: loginActionType) {
     });
     spinner.stop();
     if (error || !data) {
-      logger.error(
-        `Failed to request device authorization: ${
-          error?.error_description || error || "Unknown error"
-        }`
+      console.error(
+        chalk.red("Failed to request device authorization:")
       );
-
+      console.error(chalk.yellow(JSON.stringify(error, null, 2) || "Unknown error"));
       process.exit(1);
     }
 
