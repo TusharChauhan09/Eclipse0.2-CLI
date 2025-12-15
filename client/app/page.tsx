@@ -51,6 +51,9 @@ export default function HomePage() {
           {/* <div>{data?.user.email}</div> */}
         </div>
       </div>
+      <div>
+        
+      </div>
     </div>
   );
 }

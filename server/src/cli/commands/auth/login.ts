@@ -1,4 +1,4 @@
-import { logger, Logger } from "better-auth";
+import { logger } from "better-auth";
 import { createAuthClient } from "better-auth/client";
 import { deviceAuthorizationClient } from "better-auth/client/plugins";
 
@@ -92,6 +92,7 @@ export async function loginAction(opts: loginActionType) {
       )}`
     );
     console.log(`Enter the code: ${chalk.bold.red(user_code)}`);
+    
 
     // open in default browser
     const urlOpen = await confirm({

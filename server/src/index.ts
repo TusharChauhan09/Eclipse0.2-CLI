@@ -21,7 +21,7 @@ app.all('/api/auth/*splat', toNodeHandler(auth));
 app.use(express.json());
 
 app.get('/health',(req,res)=>{
-    res.send("hello");
+    res.send("OK");
 });
 
 app.get("/api/me", async (req, res) => {

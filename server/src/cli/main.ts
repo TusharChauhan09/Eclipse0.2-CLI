@@ -22,6 +22,7 @@ async function main() {
   );
   console.log(chalk.red("A CLI based AI Tool \n"));
 
+  // CLI Program
   const program = new Command("eclipse");
 
   program.version("0.0.1")
