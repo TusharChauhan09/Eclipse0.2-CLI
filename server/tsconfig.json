@@ -23,5 +23,6 @@
 
     // Strict mode
     "strict": true
-  }
+  },
+  "exclude": ["prisma"]
 }

@@ -20,7 +20,7 @@ app.all('/api/auth/*splat', toNodeHandler(auth));
 
 app.use(express.json());
 
-app.get('/',(req,res)=>{
+app.get('/health',(req,res)=>{
     res.send("hello");
 });
 
