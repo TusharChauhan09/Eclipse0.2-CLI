@@ -10,4 +10,8 @@ const prisma = new PrismaClient({
   adapter,
 });
 
+// Polyfill for better-auth accessing DeviceCode
+// @ts-ignore
+prisma.DeviceCode = prisma.deviceCode;
+
 export default prisma;

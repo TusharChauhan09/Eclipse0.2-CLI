@@ -72,8 +72,8 @@ model Verification {
 
 model DeviceCode {
   id              String    @id
-  deviceCode      String
-  userCode        String
+  deviceCode      String    @unique
+  userCode        String    @unique
   userId          String?
   expiresAt       DateTime
   status          String

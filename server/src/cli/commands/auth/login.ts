@@ -113,7 +113,7 @@ export async function loginAction(opts: loginActionType) {
       initialValue: true,
     });
     if (!isCancel(urlOpen) && urlOpen) {
-      const urlToOpen = verification_uri || verification_uri_complete;
+      const urlToOpen = verification_uri_complete || verification_uri ;
       await open(urlToOpen);
     }
 
@@ -141,8 +141,17 @@ export async function loginAction(opts: loginActionType) {
         console.error(chalk.yellow("You may need to login again on next use."));
         process.exit(1);
       }
+
+      // TODO: 
+      outro(chalk.green("Login successful!"));
+      console.log(chalk.gray(`\nToken saved to: ${TOKEN_FILE}`));
+      console.log(chalk.gray(`\nYou can now use the CLI.`));
     }
-  } catch (error) {}
+  } catch (error) {
+    spinner.stop();
+    console.error(chalk.red("\nFailed to login:"), error);
+    process.exit(1);
+  }
 }
 
 // Poll Token Function
@@ -150,9 +159,9 @@ async function pollForToken(
   authClient: any,
   device_code: String,
   client_id: String,
-  interval: number
+  initialInterval: number
 ) {
-  let pollingInterval = initialIntervalue;
+  let pollingInterval = initialInterval;
   const spinner = yoctoSpinner({ text: "", color: "cyan" });
   let dots = 0;
 
