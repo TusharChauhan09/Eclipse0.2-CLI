@@ -24,5 +24,5 @@
     // Strict mode
     "strict": true
   },
-  "exclude": ["prisma"]
+  "exclude": ["prisma.config.ts"]
 }

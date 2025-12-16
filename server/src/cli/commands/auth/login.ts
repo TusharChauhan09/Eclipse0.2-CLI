@@ -17,6 +17,7 @@ import path from "path";
 import yoctoSpinner from "yocto-spinner";
 
 import { loginActionType } from "../../../types/types";
+import { getStoredToken, isTokenExpire, storeToken } from "../../../lib/token";
 
 dotenv.config();
 
@@ -28,8 +29,9 @@ if (!process.env.GITHUB_CLIENT_ID) {
 const URL = "http://localhost:3001";
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 
-const CONFIG_DIR = path.join(os.homedir(), ".better-auth");
-const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");
+export const CONFIG_DIR = path.join(os.homedir(), ".better-auth");
+export const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");
+
 
 // ! Actions
 
@@ -39,15 +41,19 @@ export async function loginAction(opts: loginActionType) {
   const clientId = opts.clientId || CLIENT_ID;
 
   if (!clientId) {
-    console.error(chalk.red("Client ID is missing. Please set GITHUB_CLIENT_ID in your .env file."));
+    console.error(
+      chalk.red(
+        "Client ID is missing. Please set GITHUB_CLIENT_ID in your .env file."
+      )
+    );
     process.exit(1);
   }
 
   intro(chalk.bold("🔒 Auth CLI Login"));
 
-  // TODO: Apply token management logic
-  const existingToken = false;
-  const expired = false;
+  // token management logic
+  const existingToken = await getStoredToken();
+  const expired = await isTokenExpire();
 
   if (existingToken && !expired) {
     const shouldReAuth = await confirm({
@@ -77,10 +83,10 @@ export async function loginAction(opts: loginActionType) {
     });
     spinner.stop();
     if (error || !data) {
+      console.error(chalk.red("Failed to request device authorization:"));
       console.error(
-        chalk.red("Failed to request device authorization:")
+        chalk.yellow(JSON.stringify(error, null, 2) || "Unknown error")
       );
-      console.error(chalk.yellow(JSON.stringify(error, null, 2) || "Unknown error"));
       process.exit(1);
     }
 
@@ -100,7 +106,6 @@ export async function loginAction(opts: loginActionType) {
       )}`
     );
     console.log(`Enter the code: ${chalk.bold.red(user_code)}`);
-    
 
     // open in default browser
     const urlOpen = await confirm({
@@ -120,7 +125,90 @@ export async function loginAction(opts: loginActionType) {
         )} minutes)...)`
       )
     );
+
+    // Poll Token Function call
+    const token = await pollForToken(
+      authClient,
+      device_code,
+      clientId,
+      interval
+    );
+
+    if(token){
+      const saved = await storeToken(token); 
+      if(!saved){
+        console.error(chalk.yellow("⚠️ Warning: Could not save authentication token."));
+        console.error(chalk.yellow("You may need to login again on next use."));
+        process.exit(1);
+      }
+    }
   } catch (error) {}
+}
+
+// Poll Token Function
+async function pollForToken(
+  authClient: any,
+  device_code: String,
+  client_id: String,
+  interval: number
+) {
+  let pollingInterval = initialIntervalue;
+  const spinner = yoctoSpinner({ text: "", color: "cyan" });
+  let dots = 0;
+
+  return new Promise((resolve, reject) => {
+    const poll = async () => {
+      dots = (dots + 1) % 4;
+      spinner.text = chalk.gray(
+        `Polling for authorization${".".repeat(dots)}${" ".repeat(3 - dots)}`
+      );
+      if (!spinner.isSpinning) spinner.start();
+      try {
+        const { data, error } = await authClient.device.token({
+          grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+          device_code: device_code,
+          client_id: client_id,
+          fetchOptions: {
+            "user-agent": "My CLI",
+          },
+        });
+
+        if (data?.access_token) {
+          console.log(
+            chalk.bold.yellow(`Your access token: ${data.access_token}`)
+          );
+
+          spinner.stop();
+          resolve(data);
+          return;
+        } else if (error) {
+          switch (error.error) {
+            case "authorization_pending":
+              break;
+            case "slow_down":
+              pollingInterval += 5;
+              break;
+            case "access_denied":
+              console.error("Access was denied by the user");
+              return;
+            case "expired_token":
+              console.error("The device code has expired. Please try again.");
+              return;
+            default:
+              spinner.stop()
+              logger.error(`Error: ${error.error_description}`);
+              process.exit(1);
+          }
+        }
+      } catch (error) {
+        spinner.stop();
+        logger.error(`Network Error: ${error}`);
+        process.exit(1);
+      }
+      setTimeout(poll, pollingInterval * 1000);
+    };
+    setTimeout(poll, pollingInterval * 1000);
+  });
 }
 
 // ! Command setup for CLI
