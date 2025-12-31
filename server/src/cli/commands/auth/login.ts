@@ -17,7 +17,13 @@ import path from "path";
 import yoctoSpinner from "yocto-spinner";
 
 import { loginActionType } from "../../../types/types";
-import { getStoredToken, isTokenExpire, storeToken } from "../../../lib/token";
+import {
+  clearStoreToken,
+  getStoredToken,
+  isTokenExpire,
+  requireAuth,
+  storeToken,
+} from "../../../lib/token";
 
 dotenv.config();
 
@@ -31,7 +37,6 @@ const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
 
 export const CONFIG_DIR = path.join(os.homedir(), ".better-auth");
 export const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");
-
 
 // ! Actions
 
@@ -113,7 +118,7 @@ export async function loginAction(opts: loginActionType) {
       initialValue: true,
     });
     if (!isCancel(urlOpen) && urlOpen) {
-      const urlToOpen = verification_uri_complete || verification_uri ;
+      const urlToOpen = verification_uri_complete || verification_uri;
       await open(urlToOpen);
     }
 
@@ -134,15 +139,17 @@ export async function loginAction(opts: loginActionType) {
       interval
     );
 
-    if(token){
-      const saved = await storeToken(token); 
-      if(!saved){
-        console.error(chalk.yellow("⚠️ Warning: Could not save authentication token."));
+    if (token) {
+      const saved = await storeToken(token);
+      if (!saved) {
+        console.error(
+          chalk.yellow("⚠️ Warning: Could not save authentication token.")
+        );
         console.error(chalk.yellow("You may need to login again on next use."));
         process.exit(1);
       }
 
-      // TODO: 
+      // TODO:
       outro(chalk.green("Login successful!"));
       console.log(chalk.gray(`\nToken saved to: ${TOKEN_FILE}`));
       console.log(chalk.gray(`\nYou can now use the CLI.`));
@@ -204,7 +211,7 @@ async function pollForToken(
               console.error("The device code has expired. Please try again.");
               return;
             default:
-              spinner.stop()
+              spinner.stop();
               logger.error(`Error: ${error.error_description}`);
               process.exit(1);
           }
@@ -220,6 +227,60 @@ async function pollForToken(
   });
 }
 
+//
+export async function logoutAction() {
+  intro(chalk.bold("🔒 Auth CLI Logout"));
+  const token = await getStoredToken();
+
+  if (!token) {
+    console.log(chalk.yellow("You are not logged in."));
+    process.exit(0);
+  }
+
+  const shouldLogout = await confirm({
+    message: "Are you sure you want to logout?",
+    initialValue: false,
+  });
+
+  if (isCancel(shouldLogout) || !shouldLogout) {
+    cancel("Logout cancelled.");
+    process.exit(0);
+  }
+
+  const cleared = await clearStoreToken();
+  if (cleared) {
+    outro(chalk.green("Logout successful!"));
+  } else {
+    console.error(chalk.red("⚠️ Failed to logout. Please try again."));
+  }
+}
+
+export async function whoamiAction() {
+  const token = await requireAuth();
+  if (!token) {
+    console.log("No access token found. Please login first.");
+    process.exit(1);
+  }
+  const user = await prisma.user.findFirst({
+    where: {
+      sessions: {
+        some: {
+          token: token.access_token,
+        },
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+    },
+  });
+  console.log(
+    chalk.bold.green(`\n👤 User: ${user?.name} \n📧 Email: ${user?.email}\n🆔 ID: ${user?.id}\n`)
+  );
+}
+
 // ! Command setup for CLI
 
 // Login Command
@@ -228,3 +289,11 @@ export const LoginCommand = new Command("login")
   .option("--server-url <url>", "CLI Authenticator Url", URL)
   .option("--client-id <id>", "OAuth Client ID", CLIENT_ID)
   .action(loginAction);
+
+export const logoutCommand = new Command("logout")
+  .description("Logout from the CLI Authenticator")
+  .action(logoutAction);
+
+export const whoami = new Command("whoami")
+  .description("Display information about the currently logged-in user")
+  .action(whoamiAction);

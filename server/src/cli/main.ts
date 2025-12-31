@@ -6,7 +6,7 @@ import figlet from "figlet";
 
 import { Command } from "commander";
 
-import { LoginCommand } from "./commands/auth/login";
+import { LoginCommand, logoutCommand, whoami } from "./commands/auth/login";
 
 dotenv.config();
 
@@ -25,9 +25,12 @@ async function main() {
   // CLI Program
   const program = new Command("eclipse");
 
-  program.version("0.0.1")
-  .description("Eclipse 2.0 CLI - A CLI based AI Tool")
-  .addCommand(LoginCommand);
+  program
+    .version("0.0.1")
+    .description("Eclipse 2.0 CLI - A CLI based AI Tool")
+    .addCommand(LoginCommand)
+    .addCommand(logoutCommand)
+    .addCommand(whoami);
 
   program.action(() => {
     program.help();
