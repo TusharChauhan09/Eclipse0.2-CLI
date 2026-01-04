@@ -294,6 +294,6 @@ export const logoutCommand = new Command("logout")
   .description("Logout from the CLI Authenticator")
   .action(logoutAction);
 
-export const whoami = new Command("whoami")
+export const whoamiCommand = new Command("whoami")
   .description("Display information about the currently logged-in user")
   .action(whoamiAction);

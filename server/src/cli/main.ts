@@ -6,7 +6,8 @@ import figlet from "figlet";
 
 import { Command } from "commander";
 
-import { LoginCommand, logoutCommand, whoami } from "./commands/auth/login";
+import { LoginCommand, logoutCommand, whoamiCommand } from "./commands/auth/login";
+import { wakeUpCommand } from "./commands/ai/wakeUp";
 
 dotenv.config();
 
@@ -30,7 +31,8 @@ async function main() {
     .description("Eclipse 2.0 CLI - A CLI based AI Tool")
     .addCommand(LoginCommand)
     .addCommand(logoutCommand)
-    .addCommand(whoami);
+    .addCommand(whoamiCommand)
+    .addCommand(wakeUpCommand);
 
   program.action(() => {
     program.help();
