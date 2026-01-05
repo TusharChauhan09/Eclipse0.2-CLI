@@ -71,11 +71,52 @@ export class ChatService {
     }));
   }
 
+  async getUserConversations(userId: string) {
+    return await prisma.conversation.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        message: {
+          take: 1,
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
+    });
+  }
+
+  async deleteConversation(conversationId: string, userId: string) {
+    return await prisma.conversation.deleteMany({
+      where: {
+        id: conversationId,
+        userId,
+      },
+    });
+  }
+
+  async updateTitle(conversationId: string, title: string) {
+    return await prisma.conversation.update({
+      where: {
+        id: conversationId,
+      },
+      data: { title },
+    });
+  }
+
   private parseContent(content: string): string | object {
     try {
       return JSON.parse(content);
     } catch {
       return content;
     }
+  }
+
+  formatMessagesForAI(messages: Array<{ role: string; content: string | object }>) {
+    return messages.map((msg) => ({
+      role: msg.role,
+      content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+    }));
   }
 }

@@ -29,7 +29,7 @@ export default function DeviceApprovalPage() {
   }
 
   if (!data?.session && !data?.user) {
-    router.push("/sign-in");
+    router.push("/signin");
   }
 
   const handleApprove = async () => {
