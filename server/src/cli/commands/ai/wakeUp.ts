@@ -4,6 +4,7 @@ import yoctoSpinner from "yocto-spinner";
 import { getStoredToken } from "../../../lib/token";
 import prisma from "../../../lib/db";
 import { select } from "@clack/prompts";
+import { startChat } from "../../chat/chat-with-ai";
 
 const wakeUpAction = async () => {
   const token = await getStoredToken();
@@ -60,13 +61,13 @@ const wakeUpAction = async () => {
 
   switch (choice) {
     case "chat":
-      console.log(chalk.yellow("Chat mode is not yet implemented."));
+      await startChat("chat");
       break;
     case "tool":
-      console.log(chalk.yellow("Tool Calling mode is not yet implemented."));
+      await startChat("tool");
       break;
     case "agent":
-      console.log(chalk.yellow("Agentic Mode is not yet implemented."));
+      console.log(chalk.yellow("Agentic Mode is coming soon!"));
       break;
     default:
       console.log(chalk.red("Invalid choice."));

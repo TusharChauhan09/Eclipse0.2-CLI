@@ -3,15 +3,15 @@ import boxen from "boxen";
 import { text, isCancel, cancel, intro, outro } from "@clack/prompts";
 import yoctoSpinner from "yocto-spinner";
 import { marked } from "marked";
-import markedTerminal from "marked-terminal";
+import { markedTerminal } from "marked-terminal";
 import { AIService } from "../ai/google-service.js";
 import { ChatService } from "../../service/chat.service.js";
 import { getStoredToken } from "../../lib/token.js";
 import prisma from "../../lib/db.js";
 
 // Configure marked to use terminal renderer
-marked.use({
-  renderer: new markedTerminal({
+marked.use(
+  markedTerminal({
     // Styling options for terminal output
     code: chalk.cyan,
     blockquote: chalk.gray.italic,
@@ -27,8 +27,8 @@ marked.use({
     del: chalk.dim.gray.strikethrough,
     link: chalk.blue.underline,
     href: chalk.blue.underline,
-  }) as any,
-});
+  }) as Parameters<typeof marked.use>[0],
+);
 
 const aiService = new AIService();
 const chatService = new ChatService();
@@ -60,14 +60,14 @@ async function getUserFromToken() {
 async function initConversation(
   userId: string,
   conversationId: string | null = null,
-  mode: string = "chat"
+  mode: string = "chat",
 ) {
   const spinner = yoctoSpinner({ text: "Loading conversation..." }).start();
 
   const conversation = await chatService.getOrCreateConversation(
     userId,
     conversationId,
-    mode
+    mode,
   );
 
   spinner.success("Conversation loaded");
@@ -75,7 +75,7 @@ async function initConversation(
   // Display conversation info in a box
   const conversationInfo = boxen(
     `${chalk.bold("Conversation")}: ${conversation.title}\n${chalk.gray(
-      "ID: " + conversation.id
+      "ID: " + conversation.id,
     )}\n${chalk.gray("Mode: " + conversation.mode)}`,
     {
       padding: 1,
@@ -84,7 +84,7 @@ async function initConversation(
       borderColor: "cyan",
       title: "💬 Chat Session",
       titleAlignment: "center",
-    }
+    },
   );
 
   console.log(conversationInfo);
@@ -129,7 +129,7 @@ async function displayMessages(messages: any[]) {
 async function saveMessage(
   conversationId: string,
   role: string,
-  content: string
+  content: string,
 ) {
   return await chatService.addMessage(conversationId, role, content);
 }
@@ -177,7 +177,7 @@ async function getAIResponse(conversationId: string) {
 async function updateConversationTitle(
   conversationId: string,
   userInput: string,
-  messageCount: number
+  messageCount: number,
 ) {
   if (messageCount === 1) {
     const title = userInput.slice(0, 50) + (userInput.length > 50 ? "..." : "");
@@ -188,9 +188,9 @@ async function updateConversationTitle(
 async function chatLoop(conversation: any) {
   const helpBox = boxen(
     `${chalk.gray("• Type your message and press Enter")}\n${chalk.gray(
-      "• Markdown formatting is supported in responses"
+      "• Markdown formatting is supported in responses",
     )}\n${chalk.gray('• Type "exit" to end conversation')}\n${chalk.gray(
-      "• Press Ctrl+C to quit anytime"
+      "• Press Ctrl+C to quit anytime",
     )}`,
     {
       padding: 1,
@@ -198,7 +198,7 @@ async function chatLoop(conversation: any) {
       borderStyle: "round",
       borderColor: "gray",
       dimBorder: true,
-    }
+    },
   );
 
   console.log(helpBox);
@@ -257,7 +257,7 @@ async function chatLoop(conversation: any) {
 
 export async function startChat(
   mode: string = "chat",
-  conversationId: string | null = null
+  conversationId: string | null = null,
 ) {
   try {
     intro(
@@ -265,7 +265,7 @@ export async function startChat(
         padding: 1,
         borderStyle: "double",
         borderColor: "cyan",
-      })
+      }),
     );
     const user = await getUserFromToken();
     const conversation = await initConversation(user.id, conversationId, mode);
