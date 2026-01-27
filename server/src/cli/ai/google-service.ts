@@ -1,9 +1,9 @@
 import { google } from "@ai-sdk/google";
-import { generateText, streamText } from "ai";
+import { generateText, streamText, convertToModelMessages } from "ai";
 import { config } from "../../config/google.config.js";
 import chalk from "chalk";
 
-export class AIService  {
+export class AIService {
   private model: any;
   constructor() {
     if (config.googleApiKey === "") {
@@ -17,7 +17,7 @@ export class AIService  {
     try {
       const streamConfig = {
         model: this.model,
-        messages: messages,
+        messages: await convertToModelMessages(messages),
       };
 
       const result = streamText(streamConfig);
@@ -34,18 +34,22 @@ export class AIService  {
         content: fullResponse,
         finishReason: result.finishReason,
         usage: result.usage,
-      }
+      };
     } catch (error) {
-        console.error(chalk.red("Error in GoogleService sendMessage:"), error);
+      console.error(chalk.red("Error in GoogleService sendMessage:"), error);
     }
   }
 
   // @ts-ignore
   async getMessage(messages, tools = undefined) {
     let fullResponse = "";
-    const result = await this.sendMessage(messages, (chunk: any) => {
-      fullResponse += chunk;
-    }, tools);
+    const result = await this.sendMessage(
+      messages,
+      (chunk: any) => {
+        fullResponse += chunk;
+      },
+      tools,
+    );
     return result?.content;
   }
 }
