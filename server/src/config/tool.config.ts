@@ -50,3 +50,29 @@ export function toogleTool(toolId: string){
 }
 
 
+export function enableTools(toolIds: string[]){
+    console.log(chalk.gray(`[DEBUG] enableTools called with: ${toolIds.join(", ")}`));
+    availableTools.forEach(tool=>{
+        const wasEnabled = tool.enabled;
+        tool.enabled = toolIds.includes(tool.id);
+        if (tool.enabled !== wasEnabled) {
+            console.log(chalk.green(`[DEBUG] Tool "${tool.name}" is now ${tool.enabled ? "enabled" : "disabled"}.`));
+        }
+    });
+
+    const enableCount = availableTools.filter(t=>t.enabled).length;
+    console.log(chalk.green(`[DEBUG] Total enabled tools: ${enableCount}/${availableTools.length}`));
+}
+
+export function getEnabledToolNames(){
+    const names = availableTools.filter(t=>t.enabled).map(t=>t.name);
+    console.log(chalk.gray(`[DEBUG] getEnabledToolNames: ${names.join(", ")}`));
+    return names;
+}
+
+export function resetTools(){
+    availableTools.forEach(tool=>{
+        tool.enabled = false;
+    });
+    console.log(chalk.green(`[INFO] All tools have been reset to disabled.`));
+}
