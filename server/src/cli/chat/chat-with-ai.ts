@@ -4,10 +4,10 @@ import { text, isCancel, cancel, intro, outro } from "@clack/prompts";
 import yoctoSpinner from "yocto-spinner";
 import { marked } from "marked";
 import { markedTerminal } from "marked-terminal";
-import { AIService } from "../ai/google-service.js";
-import { ChatService } from "../../service/chat.service.js";
-import { getStoredToken } from "../../lib/token.js";
-import prisma from "../../lib/db.js";
+import { AIService } from "../ai/google-service";
+import { ChatService } from "../../service/chat.service";
+import { getStoredToken } from "../../lib/token";
+import prisma from "../../lib/db";
 
 // Configure marked to use terminal renderer
 marked.use(
