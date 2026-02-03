@@ -122,6 +122,46 @@ async function selectTools() {
   return selectedTools.length > 0;
 }
 
+async function initConversation(
+  userId: string,
+  conversationId: string | null = null,
+  mode = "tool",
+) {
+  const spinner = yoctoSpinner({ text: "Loading conversation..." }).start();
+
+  const conversation = await chatService.getOrCreateConversation(
+    userId,
+    conversationId,
+    mode,
+  );
+
+  spinner.success("Conversation loaded");
+
+  // Get enabled tool names for display
+  const enabledToolNames = getEnabledToolNames();
+  const toolsDisplay =
+    enabledToolNames.length > 0
+      ? `\n${chalk.gray("Active Tools:")} ${enabledToolNames.join(", ")}`
+      : `\n${chalk.gray("No tools enabled")}`;
+
+  // Display conversation info in a box
+  const conversationInfo = boxen(
+    `${chalk.bold("Conversation")}: ${conversation.title}\n${chalk.gray("ID: " + conversation.id)}\n${chalk.gray("Mode: " + conversation.mode)}${toolsDisplay}`,
+    {
+      padding: 1,
+      margin: { top: 1, bottom: 1 },
+      borderStyle: "round",
+      borderColor: "cyan",
+      title: "💬 Tool Calling Session",
+      titleAlignment: "center",
+    },
+  );
+
+  console.log(conversationInfo);
+
+  return conversation;
+}
+
 export async function startToolChat(conversationId: string | null = null) {
   try {
     intro(
