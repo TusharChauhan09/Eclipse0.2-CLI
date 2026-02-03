@@ -1,24 +1,27 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import yoctoSpinner from "yocto-spinner";
-import { getStoredToken } from "../../../lib/token";
-import prisma from "../../../lib/db";
+import { getStoredToken } from "../../../lib/token.js";
+import prisma from "../../../lib/db.js";
 import { select } from "@clack/prompts";
-import { startChat } from "../../chat/chat-with-ai";
+import { startChat } from "../../chat/chat-with-ai.js";
+import { startToolChat } from "../../chat/chat-with-ai-tool.js";
 
 const wakeUpAction = async () => {
   const token = await getStoredToken();
 
-  if (!token) {
-    console.log(chalk.red("You must be logged in to wake up the AI service."));
+  if (!token?.access_token) {
+    console.log(chalk.red("Not authenticated. Please login."));
     return;
   }
-  const spinner = yoctoSpinner({ text: "Fetching user information..." });
+
+  const spinner = yoctoSpinner({ text: "Fetching User Information..." });
   spinner.start();
+
   const user = await prisma.user.findFirst({
     where: {
       sessions: {
-        some: { token: token.accessToken },
+        some: { token: token.access_token },
       },
     },
     select: {
@@ -32,11 +35,11 @@ const wakeUpAction = async () => {
   spinner.stop();
 
   if (!user) {
-    console.log(chalk.red("User not found. Please log in again."));
+    console.log(chalk.red("User not found."));
     return;
   }
 
-  console.log(chalk.green(`Welcome back, ${user.name}!\n`));
+  console.log(chalk.green(`\nWelcome back, ${user.name}!\n`));
 
   const choice = await select({
     message: "Select an option:",
@@ -44,12 +47,12 @@ const wakeUpAction = async () => {
       {
         value: "chat",
         label: "Chat",
-        hint: "Chat with the AI",
+        hint: "Simple chat with AI",
       },
       {
         value: "tool",
         label: "Tool Calling",
-        hint: "Chat with tools (Google Search, Code Execution, etc.) ",
+        hint: "Chat with tools (Google Search, Code Execution)",
       },
       {
         value: "agent",
@@ -64,17 +67,14 @@ const wakeUpAction = async () => {
       await startChat("chat");
       break;
     case "tool":
-      await startChat("tool");
+      await startToolChat();
       break;
     case "agent":
       console.log(chalk.yellow("Agentic Mode is coming soon!"));
-      break;
-    default:
-      console.log(chalk.red("Invalid choice."));
       break;
   }
 };
 
 export const wakeUpCommand = new Command("wakeup")
-  .description("Wake up the AI service and start interacting")
+  .description("Wake up the AI")
   .action(wakeUpAction);

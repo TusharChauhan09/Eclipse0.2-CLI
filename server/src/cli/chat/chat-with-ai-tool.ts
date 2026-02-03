@@ -15,7 +15,6 @@ import { AIService } from "../ai/google-service.js";
 import { ChatService } from "../../service/chat.service.js";
 import { getStoredToken } from "../../lib/token.js";
 import prisma from "../../lib/db.js";
-
 import {
   availableTools,
   getEnabledTools,
@@ -23,11 +22,10 @@ import {
   getEnabledToolNames,
   resetTools,
 } from "../../config/tool.config.js";
-import { L } from "better-auth/dist/shared/better-auth.BUpnjBGu.js";
 
+// Configure marked for terminal
 marked.use(
   markedTerminal({
-    // Styling options for terminal output
     code: chalk.cyan,
     blockquote: chalk.gray.italic,
     heading: chalk.green.bold,
@@ -50,11 +48,12 @@ const chatService = new ChatService();
 
 async function getUserFromToken() {
   const token = await getStoredToken();
+
   if (!token?.access_token) {
-    throw new Error("Not Authenticated. Please run eclipse login first.");
+    throw new Error("Not authenticated. Please run 'eclipse login' first.");
   }
 
-  const spinner = yoctoSpinner({ text: "Authenticating..." });
+  const spinner = yoctoSpinner({ text: "Authenticating..." }).start();
 
   const user = await prisma.user.findFirst({
     where: {
@@ -63,6 +62,7 @@ async function getUserFromToken() {
       },
     },
   });
+
   if (!user) {
     spinner.error("User not found");
     throw new Error("User not found. Please login again.");
@@ -74,17 +74,19 @@ async function getUserFromToken() {
 
 async function selectTools() {
   const toolOptions = availableTools.map((tool) => ({
-    label: tool.name,
     value: tool.id,
+    label: tool.name,
     hint: tool.description,
   }));
+
   const selectedTools = await multiselect({
     message: chalk.cyan(
-      "Select tools to enable (Space to select, Enter to confirm): ",
+      "Select tools to enable (Space to select, Enter to confirm):",
     ),
     options: toolOptions,
     required: false,
   });
+
   if (isCancel(selectedTools)) {
     cancel(chalk.yellow("Tool selection cancelled"));
     process.exit(0);
@@ -103,8 +105,9 @@ async function selectTools() {
         `✅ Enabled tools:\n${selectedTools
           .map((id) => {
             const tool = availableTools.find((t) => t.id === id);
-            return `  • ${tool?.name}`;
+            return tool ? `  • ${tool.name}` : "";
           })
+          .filter(Boolean)
           .join("\n")}`,
       ),
       {
@@ -125,7 +128,7 @@ async function selectTools() {
 async function initConversation(
   userId: string,
   conversationId: string | null = null,
-  mode = "tool",
+  mode: string = "tool",
 ) {
   const spinner = yoctoSpinner({ text: "Loading conversation..." }).start();
 
@@ -159,35 +162,257 @@ async function initConversation(
 
   console.log(conversationInfo);
 
+  // Display existing messages if any
+  if ((conversation as any).message?.length > 0) {
+    console.log(chalk.yellow("📜 Previous messages:\n"));
+    await displayMessages((conversation as any).message);
+  }
+
   return conversation;
 }
 
-export async function startToolChat(conversationId: string | null = null) {
+async function displayMessages(messages: any[]) {
+  for (const msg of messages) {
+    if (msg.role === "user") {
+      const userBox = boxen(chalk.white(msg.content), {
+        padding: 1,
+        margin: { left: 2, bottom: 1 },
+        borderStyle: "round",
+        borderColor: "blue",
+        title: "👤 You",
+        titleAlignment: "left",
+      });
+      console.log(userBox);
+    } else if (msg.role === "assistant") {
+      const renderedContent = await marked.parse(msg.content);
+      const assistantBox = boxen(renderedContent.trim(), {
+        padding: 1,
+        margin: { left: 2, bottom: 1 },
+        borderStyle: "round",
+        borderColor: "green",
+        title: "🤖 Assistant (with tools)",
+        titleAlignment: "left",
+      });
+      console.log(assistantBox);
+    }
+  }
+}
+
+async function saveMessage(
+  conversationId: string,
+  role: string,
+  content: string,
+) {
+  return await chatService.addMessage(conversationId, role, content);
+}
+
+async function getAIResponse(conversationId: string) {
+  const spinner = yoctoSpinner({
+    text: "AI is thinking...",
+    color: "cyan",
+  }).start();
+
+  const dbMessages = await chatService.getMessages(conversationId);
+  const aiMessages = chatService.formatMessagesForAI(dbMessages);
+
+  if (!aiMessages || aiMessages.length === 0) {
+    spinner.error("No messages found in conversation");
+    throw new Error("No messages to process");
+  }
+
+  const tools = getEnabledTools();
+
+  let fullResponse = "";
+  let isFirstChunk = true;
+  const toolCallsDetected: any[] = [];
+
+  try {
+    // IMPORTANT: Pass tools in the streamText config
+    const result = await aiService.sendMessage(
+      aiMessages,
+      (chunk) => {
+        if (isFirstChunk) {
+          spinner.stop();
+          console.log("\n");
+          const header = chalk.green.bold("🤖 Assistant:");
+          console.log(header);
+          console.log(chalk.gray("─".repeat(60)));
+          isFirstChunk = false;
+        }
+        fullResponse += chunk;
+      },
+      tools,
+      (toolCall) => {
+        toolCallsDetected.push(toolCall);
+      },
+    );
+
+    // Display tool calls if any
+    if (toolCallsDetected.length > 0) {
+      console.log("\n");
+      const toolCallBox = boxen(
+        toolCallsDetected
+          .map(
+            (tc) =>
+              `${chalk.cyan("🔧 Tool:")} ${tc.toolName}\n${chalk.gray("Args:")} ${JSON.stringify(tc.args, null, 2)}`,
+          )
+          .join("\n\n"),
+        {
+          padding: 1,
+          margin: 1,
+          borderStyle: "round",
+          borderColor: "cyan",
+          title: "🛠️  Tool Calls",
+        },
+      );
+      console.log(toolCallBox);
+    }
+
+    // Display tool results if any
+    if (result && result.toolResults && result.toolResults.length > 0) {
+      const toolResultBox = boxen(
+        result.toolResults
+          .map(
+            (tr) =>
+              `${chalk.green("✅ Tool:")} ${tr.toolName}\n${chalk.gray("Result:")} ${JSON.stringify((tr as any).result || tr.output, null, 2).slice(0, 200)}...`,
+          )
+          .join("\n\n"),
+        {
+          padding: 1,
+          margin: 1,
+          borderStyle: "round",
+          borderColor: "green",
+          title: "📊 Tool Results",
+        },
+      );
+      console.log(toolResultBox);
+    }
+
+    // Render markdown response
+    console.log("\n");
+    const renderedMarkdown = await marked.parse(fullResponse);
+    console.log(renderedMarkdown);
+    console.log(chalk.gray("─".repeat(60)));
+    console.log("\n");
+
+    return result?.content || fullResponse;
+  } catch (error) {
+    spinner.error("Failed to get AI response");
+    throw error;
+  }
+}
+
+async function updateConversationTitle(
+  conversationId: string,
+  userInput: string,
+  messageCount: number,
+) {
+  if (messageCount === 1) {
+    const title = userInput.slice(0, 50) + (userInput.length > 50 ? "..." : "");
+    await chatService.updateTitle(conversationId, title);
+  }
+}
+
+async function chatLoop(conversation: any) {
+  const enabledToolNames = getEnabledToolNames();
+  const helpBox = boxen(
+    `${chalk.gray("• Type your message and press Enter")}\n${chalk.gray("• AI has access to:")} ${enabledToolNames.length > 0 ? enabledToolNames.join(", ") : "No tools"}\n${chalk.gray('• Type "exit" to end conversation')}\n${chalk.gray("• Press Ctrl+C to quit anytime")}`,
+    {
+      padding: 1,
+      margin: { bottom: 1 },
+      borderStyle: "round",
+      borderColor: "gray",
+      dimBorder: true,
+    },
+  );
+
+  console.log(helpBox);
+
+  while (true) {
+    const userInput = await text({
+      message: chalk.blue("💬 Your message"),
+      placeholder: "Type your message...",
+      validate(value) {
+        if (!value || value.trim().length === 0) {
+          return "Message cannot be empty";
+        }
+      },
+    });
+
+    if (isCancel(userInput)) {
+      const exitBox = boxen(chalk.yellow("Chat session ended. Goodbye! 👋"), {
+        padding: 1,
+        margin: 1,
+        borderStyle: "round",
+        borderColor: "yellow",
+      });
+      console.log(exitBox);
+      process.exit(0);
+    }
+
+    if (userInput.toLowerCase() === "exit") {
+      const exitBox = boxen(chalk.yellow("Chat session ended. Goodbye! 👋"), {
+        padding: 1,
+        margin: 1,
+        borderStyle: "round",
+        borderColor: "yellow",
+      });
+      console.log(exitBox);
+      break;
+    }
+
+    const userBox = boxen(chalk.white(userInput), {
+      padding: 1,
+      margin: { left: 2, top: 1, bottom: 1 },
+      borderStyle: "round",
+      borderColor: "blue",
+      title: "👤 You",
+      titleAlignment: "left",
+    });
+    console.log(userBox);
+
+    await saveMessage(conversation.id, "user", userInput);
+    const messages = await chatService.getMessages(conversation.id);
+    const aiResponse = await getAIResponse(conversation.id);
+    await saveMessage(conversation.id, "assistant", aiResponse);
+    await updateConversationTitle(conversation.id, userInput, messages.length);
+  }
+}
+
+export async function startToolChat(conversationId = null) {
   try {
     intro(
-      boxen(chalk.bold.cyan("Eclipse AI - Tool Chat Mode"), {
+      boxen(chalk.bold.cyan("🛠️  Eclipse AI - Tool Calling Mode"), {
         padding: 1,
         borderStyle: "double",
         borderColor: "cyan",
       }),
     );
+
     const user = await getUserFromToken();
+
+    // Select tools
     await selectTools();
+
     const conversation = await initConversation(
       user.id,
       conversationId,
-      "tool-chat",
+      "tool",
     );
-    await chatLoop(user.id, conversation.id);
+    await chatLoop(conversation);
+
+    // Reset tools on exit
     resetTools();
-    outro(chalk.green("Thank you for using Eclipse AI!"));
+
+    outro(chalk.green("✨ Thanks for using tools!"));
   } catch (error) {
-    const errorBox = boxen(chalk.red(`Error: ${(error as Error).message}`), {
+    const errorBox = boxen(chalk.red(`❌ Error: ${(error as Error).message}`), {
       padding: 1,
+      margin: 1,
       borderStyle: "round",
       borderColor: "red",
     });
-    console.error(errorBox);
+    console.log(errorBox);
     resetTools();
     process.exit(1);
   }
