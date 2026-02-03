@@ -143,6 +143,12 @@ async function getAIResponse(conversationId: string) {
   const dbMessages = await chatService.getMessages(conversationId);
   const aiMessages = chatService.formatMessagesForAI(dbMessages);
 
+  // Validate that we have messages
+  if (!aiMessages || aiMessages.length === 0) {
+    spinner.error("No messages found in conversation");
+    throw new Error("No messages to process");
+  }
+
   let fullResponse = "";
   let isFirstChunk = true;
 

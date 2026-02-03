@@ -13,11 +13,30 @@ export class AIService {
   }
 
   // @ts-ignore
-  async sendMessage(messages: any, onChunk: ((chunk: string) => void) | null, tools: any = undefined, onToolCall: ((toolCall: any) => void) | null = null) {
+  async sendMessage(
+    messages: any,
+    onChunk: ((chunk: string) => void) | null,
+    tools: any = undefined,
+    onToolCall: ((toolCall: any) => void) | null = null,
+  ) {
     try {
+      // Ensure messages is an array and not empty
+      if (!Array.isArray(messages) || messages.length === 0) {
+        throw new Error("Messages array is required and cannot be empty");
+      }
+
+      // Validate message structure
+      for (const msg of messages) {
+        if (!msg.role || !msg.content) {
+          throw new Error(
+            "Each message must have 'role' and 'content' properties",
+          );
+        }
+      }
+
       const streamConfig: any = {
         model: this.model,
-        messages: await convertToModelMessages(messages),
+        messages: messages,
       };
 
       if (tools && Object.keys(tools).length > 0) {
@@ -31,7 +50,6 @@ export class AIService {
 
       const result = streamText(streamConfig);
       let fullResponse = "";
-
 
       for await (const chunk of result.textStream) {
         fullResponse += chunk;
@@ -49,16 +67,16 @@ export class AIService {
 
       if (steps && steps.length > 0 && Array.isArray(steps)) {
         // Process steps if needed
-        for(const step of steps){
-          if(step.toolCalls && step.toolCalls.length>0){
-            for(const toolCall of step.toolCalls){
+        for (const step of steps) {
+          if (step.toolCalls && step.toolCalls.length > 0) {
+            for (const toolCall of step.toolCalls) {
               toolCalls.push(toolCall);
-              if(onToolCall){
+              if (onToolCall) {
                 onToolCall(toolCall);
               }
             }
           }
-          if(step.toolResults && step.toolResults.length>0){
+          if (step.toolResults && step.toolResults.length > 0) {
             toolResults.push(...step.toolResults);
           }
         }

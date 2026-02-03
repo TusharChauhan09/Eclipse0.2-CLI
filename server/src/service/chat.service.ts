@@ -4,7 +4,7 @@ export class ChatService {
   async createConversation(
     userId: string,
     mode: string = "chat",
-    title: string | null = null
+    title: string | null = null,
   ) {
     return await prisma.conversation.create({
       data: {
@@ -18,7 +18,7 @@ export class ChatService {
   async getOrCreateConversation(
     userId: string,
     conversationId: string | null = null,
-    mode: string = "chat"
+    mode: string = "chat",
   ) {
     if (conversationId) {
       const conversation = await prisma.conversation.findFirst({
@@ -43,7 +43,7 @@ export class ChatService {
   async addMessage(
     conversationId: string,
     role: string,
-    content: string | object
+    content: string | object,
   ) {
     const contentStr =
       typeof content === "string" ? content : JSON.stringify(content);
@@ -113,10 +113,18 @@ export class ChatService {
     }
   }
 
-  formatMessagesForAI(messages: Array<{ role: string; content: string | object }>) {
+  formatMessagesForAI(
+    messages: Array<{ role: string; content: string | object }>,
+  ) {
+    if (!messages || messages.length === 0) {
+      return [];
+    }
     return messages.map((msg) => ({
       role: msg.role,
-      content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+      content:
+        typeof msg.content === "string"
+          ? msg.content
+          : JSON.stringify(msg.content),
     }));
   }
 }
