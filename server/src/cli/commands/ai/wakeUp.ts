@@ -1,11 +1,12 @@
 import chalk from "chalk";
 import { Command } from "commander";
 import yoctoSpinner from "yocto-spinner";
-import { getStoredToken } from "../../../lib/token.js";
+import { getStoredToken } from "../../../lib/token";
 import prisma from "../../../lib/db.js";
 import { select } from "@clack/prompts";
-import { startChat } from "../../chat/chat-with-ai.js";
-import { startToolChat } from "../../chat/chat-with-ai-tool.js";
+import { startChat } from "../../chat/chat-with-ai";
+import { startToolChat } from "../../chat/chat-with-ai-tool";
+import { startAgentChat } from "../../chat/chat-with-ai-agent";
 
 const wakeUpAction = async () => {
   const token = await getStoredToken();
@@ -70,7 +71,7 @@ const wakeUpAction = async () => {
       await startToolChat();
       break;
     case "agent":
-      console.log(chalk.yellow("Agentic Mode is coming soon!"));
+      await startAgentChat();
       break;
   }
 };

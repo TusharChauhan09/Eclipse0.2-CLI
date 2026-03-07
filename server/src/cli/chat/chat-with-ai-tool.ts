@@ -11,9 +11,9 @@ import {
 import yoctoSpinner from "yocto-spinner";
 import { marked } from "marked";
 import { markedTerminal } from "marked-terminal";
-import { AIService } from "../ai/google-service.js";
-import { ChatService } from "../../service/chat.service.js";
-import { getStoredToken } from "../../lib/token.js";
+import { AIService } from "../ai/google-service";
+import { ChatService } from "../../service/chat.service";
+import { getStoredToken } from "../../lib/token";
 import prisma from "../../lib/db.js";
 import {
   availableTools,
@@ -21,7 +21,7 @@ import {
   enableTools,
   getEnabledToolNames,
   resetTools,
-} from "../../config/tool.config.js";
+} from "../../config/tool.config";
 
 // Configure marked for terminal
 marked.use(

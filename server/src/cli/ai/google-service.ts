@@ -1,7 +1,14 @@
 import { google } from "@ai-sdk/google";
-import { generateText, streamText, convertToModelMessages, tool } from "ai";
-import { config } from "../../config/google.config.js";
+import {
+  generateText,
+  streamText,
+  convertToModelMessages,
+  tool,
+  generateObject,
+} from "ai";
+import { config } from "../../config/google.config";
 import chalk from "chalk";
+import { unknown } from "zod";
 
 export class AIService {
   private model: any;
@@ -106,5 +113,23 @@ export class AIService {
       tools,
     );
     return result?.content;
+  }
+
+  async generateStructured(schema: any, prompt: string) {
+    try {
+      const result = await generateObject({
+        model: this.model,
+        schema: schema,
+        prompt: prompt,
+      });
+
+      return result.object;
+    } catch (error: any) {
+      console.error(
+        chalk.red("AI Structured Generation Error:"),
+        error.message,
+      );
+      throw error;
+    }
   }
 }
